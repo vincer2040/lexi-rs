@@ -23,6 +23,17 @@ impl Parser {
 
     pub fn parse(&mut self) -> Result<LexiType> {
         match &self.cur {
+            Some(Token::Simple(v)) => {
+                let str: String = v.to_string();
+                if !self.expect_peek(Token::RetCar) {
+                    return Err(anyhow!("peek err"));
+                }
+                if !self.expect_peek(Token::NewL) {
+                    return Err(anyhow!("peek err"));
+                }
+                self.next_token();
+                Ok(LexiType::Simple(str))
+            }
             Some(Token::BulkType) => {
                 let str: String;
                 self.next_token();
