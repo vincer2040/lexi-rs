@@ -22,7 +22,7 @@ impl Parser {
     }
 
     pub fn parse(&mut self) -> Result<LexiType> {
-        match self.cur {
+        match &self.cur {
             Some(Token::BulkType) => {
                 let str: String;
                 self.next_token();
@@ -74,11 +74,39 @@ impl Parser {
                 };
                 Ok(LexiType::Array(vec))
             }
-            None => Err(anyhow!("eof")),
-            _ => {
-                let s = format!("no parse function for {:#?}", self.cur);
-                Err(anyhow!(s))
+            Some(v) => {
+                match v {
+                    Token::Int(buf) => {
+                        let res: i64;
+                        let mut temp: u64 = 0;
+                        let mut shift = 56;
+                        for b in buf.iter() {
+                            let btmp = *b as u64;
+                            temp |= btmp << shift;
+                            shift -= 8;
+                        }
+                        // hack for checking if value should be negative
+                        if temp <= 0x7fffffffffffffff {
+                            res = temp as i64;
+                        } else {
+                            res = -1 - ((0xffffffffffffffff - temp) as i64);
+                        }
+                        if !self.expect_peek(Token::RetCar) {
+                            return Err(anyhow!("peek err"));
+                        }
+                        if !self.expect_peek(Token::NewL) {
+                            return Err(anyhow!("peek err"));
+                        }
+                        self.next_token();
+                        Ok(LexiType::Int(res))
+                    }
+                    _ => {
+                        let s = format!("no parse function for {:#?}", self.cur);
+                        Err(anyhow!(s))
+                    }
+                }
             }
+            None => Err(anyhow!("eof")),
         }
     }
 
@@ -136,4 +164,16 @@ mod test {
         ];
         assert_eq!(val, LexiType::Array(exps));
     }
+
+    #[test]
+    fn it_can_parse_integers() {
+        let buf = Builder::new()
+            .add_int(42069)
+            .out();
+        let l = Lexer::new(buf);
+        let mut p = Parser::new(l);
+        let val = p.parse().unwrap();
+        assert_eq!(val, LexiType::Int(42069));
+    }
 }
+
