@@ -8,6 +8,7 @@ pub enum Token {
     Len(Arc<str>),
     Bulk(Arc<str>),
     Int(Arc<[u8]>),
+    Simple(Arc<str>),
     RetCar,
     NewL,
     Illegal,

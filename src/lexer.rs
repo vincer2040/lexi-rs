@@ -29,6 +29,11 @@ impl Lexer {
             b'$' => res = Token::BulkType,
             b'\r' => res = Token::RetCar,
             b'\n' => res = Token::NewL,
+            b'+' => {
+                self.read_char();
+                let str = self.read_string();
+                return Token::Simple(str.into());
+            }
             b':' => {
                 let buf: Vec<u8>;
                 self.read_char();
