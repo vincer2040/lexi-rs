@@ -24,11 +24,17 @@ impl Lexer {
     pub fn next_token(&mut self) -> Token {
         let res: Token;
         match self.ch {
+            0 => res = Token::Eof,
             b'*' => res = Token::ArrayType,
             b'$' => res = Token::BulkType,
             b'\r' => res = Token::RetCar,
             b'\n' => res = Token::NewL,
-            0 => res = Token::Eof,
+            b':' => {
+                let buf: Vec<u8>;
+                self.read_char();
+                buf = self.read_int();
+                return Token::Int(buf.into());
+            },
             _ => {
                 if is_letter(self.ch) {
                     let str = self.read_string();
@@ -60,6 +66,15 @@ impl Lexer {
         let mut res = String::new();
         while self.ch != b'\r' {
             res.push(self.ch as char);
+            self.read_char();
+        }
+        res
+    }
+
+    fn read_int(&mut self) -> Vec<u8> {
+        let mut res = Vec::<u8>::new();
+        while self.ch != b'\r' {
+            res.push(self.ch);
             self.read_char();
         }
         res
@@ -136,6 +151,20 @@ mod test {
         for exp in exps.iter() {
             let tok = lexer.next_token();
             assert_eq!(tok, *exp);
+        }
+    }
+
+    #[test]
+    fn it_can_lex_integers() {
+        let buf = Builder::new()
+            .add_int(42069)
+            .out();
+        let mut l = Lexer::new(buf);
+        let t = vec![0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xa4, 0x55];
+        let exps = [Token::Int(t.into()), Token::RetCar, Token::NewL, Token::Eof];
+        for exp in exps.iter() {
+            let tok = l.next_token();
+            assert_eq!(tok , *exp);
         }
     }
 }
