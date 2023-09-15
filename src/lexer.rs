@@ -32,10 +32,10 @@ impl Lexer {
             _ => {
                 if is_letter(self.ch) {
                     let str = self.read_string();
-                    return Token::Bulk(str);
+                    return Token::Bulk(str.into());
                 } else if is_digit(self.ch) {
                     let len = self.read_len();
-                    return Token::Len(len);
+                    return Token::Len(len.into());
                 } else {
                     return Token::Illegal;
                 }
@@ -90,10 +90,10 @@ mod test {
         let mut lexer = Lexer::new(buf);
         let exps = vec![
             Token::BulkType,
-            Token::Len("5".to_string()),
+            Token::Len("5".into()),
             Token::RetCar,
             Token::NewL,
-            Token::Bulk("vince".to_string()),
+            Token::Bulk("vince".into()),
             Token::RetCar,
             Token::NewL,
             Token::Eof,
@@ -114,21 +114,21 @@ mod test {
         let mut lexer = Lexer::new(buf);
         let exps = vec![
             Token::ArrayType,
-            Token::Len("2".to_string()),
+            Token::Len("2".into()),
             Token::RetCar,
             Token::NewL,
             Token::BulkType,
-            Token::Len("5".to_string()),
+            Token::Len("5".into()),
             Token::RetCar,
             Token::NewL,
-            Token::Bulk("vince".to_string()),
+            Token::Bulk("vince".into()),
             Token::RetCar,
             Token::NewL,
             Token::BulkType,
-            Token::Len("7".to_string()),
+            Token::Len("7".into()),
             Token::RetCar,
             Token::NewL,
-            Token::Bulk("is cool".to_string()),
+            Token::Bulk("is cool".into()),
             Token::RetCar,
             Token::NewL,
             Token::Eof,

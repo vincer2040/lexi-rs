@@ -1,10 +1,12 @@
+use std::sync::Arc;
 
-#[derive(Debug, PartialEq, Eq)]
+
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Token {
     BulkType,
     ArrayType,
-    Len(String),
-    Bulk(String),
+    Len(Arc<str>),
+    Bulk(Arc<str>),
     RetCar,
     NewL,
     Illegal,
