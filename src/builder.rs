@@ -5,6 +5,7 @@ pub struct Builder {
 enum TypeByte {
     Array,
     Bulk,
+    Int,
 }
 
 impl Builder {
@@ -33,10 +34,24 @@ impl Builder {
         self
     }
 
+    pub fn add_int(mut self, int: i64) -> Self {
+        let mut shift = 56;
+        let end = 8;
+        self.add_type_byte(TypeByte::Int);
+        for _ in 0..end {
+            let byte = (int >> shift) as u8;
+            self.buf.push(byte);
+            shift -= 8;
+        }
+        self.add_end();
+        self
+    }
+
     fn add_type_byte(&mut self, type_byte: TypeByte) {
         match type_byte {
             TypeByte::Array => self.buf.push(b'*'),
             TypeByte::Bulk => self.buf.push(b'$'),
+            TypeByte::Int => self.buf.push(b':'),
         }
     }
 
@@ -86,5 +101,14 @@ mod test {
             .out();
         let buf_str = String::from_utf8(buf).unwrap();
         assert_eq!(buf_str, "*2\r\n$5\r\nvince\r\n$7\r\nis cool\r\n");
+    }
+
+    #[test]
+    fn builder_can_add_integers() {
+        let buf = Builder::new()
+            .add_int(42069)
+            .out();
+        let t = vec![0x3a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xa4, 0x55, 0x0d, 0x0a];
+        assert_eq!(t, buf);
     }
 }
