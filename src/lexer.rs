@@ -40,6 +40,11 @@ impl Lexer {
                 buf = self.read_int();
                 return Token::Int(buf.into());
             },
+            b'-' => {
+                self.read_char();
+                let str = self.read_string();
+                return Token::Err(str.into());
+            }
             _ => {
                 if is_letter(self.ch) {
                     let str = self.read_string();
@@ -170,6 +175,17 @@ mod test {
         for exp in exps.iter() {
             let tok = l.next_token();
             assert_eq!(tok , *exp);
+        }
+    }
+
+    #[test]
+    fn it_can_lex_errors() {
+        let buf = vec![b'-', b'E', b'r', b'r', b'\r', b'\n'];
+        let mut l = Lexer::new(buf);
+        let exps = vec![Token::Err("Err".into()), Token::RetCar, Token::NewL, Token::Eof];
+        for exp in exps.iter() {
+            let tok = l.next_token();
+            assert_eq!(tok, *exp);
         }
     }
 }
