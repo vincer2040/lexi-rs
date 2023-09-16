@@ -189,9 +189,7 @@ mod test {
 
     #[test]
     fn it_can_parse_integers() {
-        let buf = Builder::new()
-            .add_int(42069)
-            .out();
+        let buf = Builder::new().add_int(42069).out();
         let l = Lexer::new(buf);
         let mut p = Parser::new(l);
         let val = p.parse().unwrap();
@@ -207,4 +205,3 @@ mod test {
         assert_eq!(val, LexiType::Error("Err".to_string()));
     }
 }
-

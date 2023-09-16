@@ -9,12 +9,9 @@ enum TypeByte {
 }
 
 impl Builder {
-
     pub fn new() -> Self {
         let buf = Vec::new();
-        Builder {
-            buf
-        }
+        Builder { buf }
     }
 
     pub fn add_arr(mut self, len: usize) -> Self {
@@ -85,9 +82,7 @@ mod test {
 
     #[test]
     fn builder_can_add_strings() {
-        let buf = Builder::new()
-            .add_bulk("vince")
-            .out();
+        let buf = Builder::new().add_bulk("vince").out();
         let buf_str = String::from_utf8(buf).unwrap();
         assert_eq!(buf_str, "$5\r\nvince\r\n");
     }
@@ -105,10 +100,10 @@ mod test {
 
     #[test]
     fn builder_can_add_integers() {
-        let buf = Builder::new()
-            .add_int(42069)
-            .out();
-        let t = vec![0x3a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xa4, 0x55, 0x0d, 0x0a];
+        let buf = Builder::new().add_int(42069).out();
+        let t = vec![
+            0x3a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xa4, 0x55, 0x0d, 0x0a,
+        ];
         assert_eq!(t, buf);
     }
 }

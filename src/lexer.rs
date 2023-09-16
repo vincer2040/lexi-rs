@@ -16,7 +16,11 @@ pub struct Lexer {
 
 impl Lexer {
     pub fn new(input: Vec<u8>) -> Self {
-        let mut l = Lexer { input, pos: 0, ch: 0 };
+        let mut l = Lexer {
+            input,
+            pos: 0,
+            ch: 0,
+        };
         l.read_char();
         l
     }
@@ -39,7 +43,7 @@ impl Lexer {
                 self.read_char();
                 buf = self.read_int();
                 return Token::Int(buf.into());
-            },
+            }
             b'-' => {
                 self.read_char();
                 let str = self.read_string();
@@ -109,9 +113,7 @@ mod test {
 
     #[test]
     fn it_can_lex_bulk_strings() {
-        let buf = Builder::new()
-            .add_bulk("vince")
-            .out();
+        let buf = Builder::new().add_bulk("vince").out();
         let mut lexer = Lexer::new(buf);
         let exps = vec![
             Token::BulkType,
@@ -166,15 +168,13 @@ mod test {
 
     #[test]
     fn it_can_lex_integers() {
-        let buf = Builder::new()
-            .add_int(42069)
-            .out();
+        let buf = Builder::new().add_int(42069).out();
         let mut l = Lexer::new(buf);
         let t = vec![0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xa4, 0x55];
         let exps = [Token::Int(t.into()), Token::RetCar, Token::NewL, Token::Eof];
         for exp in exps.iter() {
             let tok = l.next_token();
-            assert_eq!(tok , *exp);
+            assert_eq!(tok, *exp);
         }
     }
 
@@ -182,7 +182,12 @@ mod test {
     fn it_can_lex_errors() {
         let buf = vec![b'-', b'E', b'r', b'r', b'\r', b'\n'];
         let mut l = Lexer::new(buf);
-        let exps = vec![Token::Err("Err".into()), Token::RetCar, Token::NewL, Token::Eof];
+        let exps = vec![
+            Token::Err("Err".into()),
+            Token::RetCar,
+            Token::NewL,
+            Token::Eof,
+        ];
         for exp in exps.iter() {
             let tok = l.next_token();
             assert_eq!(tok, *exp);

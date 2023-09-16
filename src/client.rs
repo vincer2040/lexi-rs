@@ -1,6 +1,6 @@
-use crate::lexi_type::LexiType;
 use crate::builder::Builder;
 use crate::lexer::Lexer;
+use crate::lexi_type::LexiType;
 use crate::parser::Parser;
 
 pub struct Client {
@@ -11,7 +11,7 @@ pub struct Client {
 impl Client {
     pub fn new(address: &str) -> anyhow::Result<Self> {
         let addr: std::net::SocketAddr = address.parse()?;
-        Ok(Client { addr, stream: None, })
+        Ok(Client { addr, stream: None })
     }
 
     pub async fn connect(&mut self) -> anyhow::Result<()> {
@@ -102,7 +102,12 @@ impl Client {
         Ok(ret)
     }
 
-    pub async fn cluster_set(&mut self, name: &str, key: &str, value: impl Into<LexiType>) -> anyhow::Result<LexiType> {
+    pub async fn cluster_set(
+        &mut self,
+        name: &str,
+        key: &str,
+        value: impl Into<LexiType>,
+    ) -> anyhow::Result<LexiType> {
         match value.into() {
             LexiType::BulkString(v) => {
                 let buf = Builder::new()
@@ -136,7 +141,7 @@ impl Client {
                 let ret = p.parse()?;
                 Ok(ret)
             }
-            _ => Err(anyhow::anyhow!("invalid value"))
+            _ => Err(anyhow::anyhow!("invalid value")),
         }
     }
 
@@ -190,23 +195,21 @@ impl Client {
     async fn write(&mut self, bytes: Vec<u8>) -> anyhow::Result<usize> {
         let res: usize;
         match &self.stream {
-            Some(stream) => {
-                loop {
-                    stream.writable().await?;
-                    match stream.try_write(&bytes) {
-                        Ok(n) => {
-                            res = n;
-                            break;
-                        }
-                        Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
-                            continue;
-                        }
-                        Err(e) => {
-                            return Err(e.into());
-                        }
+            Some(stream) => loop {
+                stream.writable().await?;
+                match stream.try_write(&bytes) {
+                    Ok(n) => {
+                        res = n;
+                        break;
+                    }
+                    Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+                        continue;
+                    }
+                    Err(e) => {
+                        return Err(e.into());
                     }
                 }
-            }
+            },
             None => return Err(anyhow::anyhow!("no connection to database")),
         }
 
@@ -216,27 +219,25 @@ impl Client {
     async fn read(&mut self, out: &mut Vec<u8>) -> anyhow::Result<usize> {
         let res: usize;
         match &self.stream {
-            Some(stream) => {
-                loop {
-                    stream.readable().await?;
-                    match stream.try_read_buf(out) {
-                        Ok(0) => {
-                            res = 0;
-                            break;
-                        }
-                        Ok(n) => {
-                            res = n;
-                            break;
-                        }
-                        Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
-                            continue;
-                        }
-                        Err(e) => {
-                            return Err(e.into());
-                        }
+            Some(stream) => loop {
+                stream.readable().await?;
+                match stream.try_read_buf(out) {
+                    Ok(0) => {
+                        res = 0;
+                        break;
+                    }
+                    Ok(n) => {
+                        res = n;
+                        break;
+                    }
+                    Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+                        continue;
+                    }
+                    Err(e) => {
+                        return Err(e.into());
                     }
                 }
-            }
+            },
             None => return Err(anyhow::anyhow!("no connection to the database")),
         }
 
