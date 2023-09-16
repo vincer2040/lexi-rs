@@ -111,6 +111,17 @@ impl Parser {
                         self.next_token();
                         Ok(LexiType::Int(res))
                     }
+                    Token::Err(e) => {
+                        let s = e.to_string();
+                        if !self.expect_peek(Token::RetCar) {
+                            return Err(anyhow!("peek err"));
+                        }
+                        if !self.expect_peek(Token::NewL) {
+                            return Err(anyhow!("peek err"));
+                        }
+                        self.next_token();
+                        Ok(LexiType::Error(s))
+                    }
                     _ => {
                         let s = format!("no parse function for {:#?}", self.cur);
                         Err(anyhow!(s))
@@ -185,6 +196,15 @@ mod test {
         let mut p = Parser::new(l);
         let val = p.parse().unwrap();
         assert_eq!(val, LexiType::Int(42069));
+    }
+
+    #[test]
+    fn it_can_parse_errors() {
+        let buf = vec![b'-', b'E', b'r', b'r', b'\r', b'\n'];
+        let l = Lexer::new(buf);
+        let mut p = Parser::new(l);
+        let val = p.parse().unwrap();
+        assert_eq!(val, LexiType::Error("Err".to_string()));
     }
 }
 

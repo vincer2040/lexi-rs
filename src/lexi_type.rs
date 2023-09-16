@@ -4,6 +4,7 @@ pub enum LexiType {
     Array(Vec<LexiType>),
     Int(i64),
     Simple(String),
+    Error(String),
 }
 
 impl Into<LexiType> for &str {
