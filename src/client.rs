@@ -87,6 +87,50 @@ impl Client {
         Ok(ret)
     }
 
+    pub async fn push(&mut self, value: impl Into<LexiType>) -> anyhow::Result<LexiType> {
+        match value.into() {
+            LexiType::Int(v) => {
+                let buf = Builder::new()
+                    .add_arr(2)
+                    .add_bulk("PUSH")
+                    .add_int(v)
+                    .out();
+                let mut out = Vec::with_capacity(4096);
+                let _ = self.write(buf).await?;
+                let _ = self.read(&mut out).await?;
+                let l = Lexer::new(out);
+                let mut p = Parser::new(l);
+                p.parse()
+            }
+            LexiType::BulkString(v) => {
+                let buf = Builder::new()
+                    .add_arr(2)
+                    .add_bulk("PUSH")
+                    .add_bulk(&v)
+                    .out();
+                let mut out = Vec::with_capacity(4096);
+                let _ = self.write(buf).await?;
+                let _ = self.read(&mut out).await?;
+                let l = Lexer::new(out);
+                let mut p = Parser::new(l);
+                p.parse()
+            }
+            _ => Err(anyhow::anyhow!("invalid value"))
+        }
+    }
+
+    pub async fn pop(&mut self) -> anyhow::Result<LexiType> {
+        let buf = Builder::new()
+            .add_bulk("POP")
+            .out();
+        let mut out = Vec::with_capacity(4096);
+        let _ = self.write(buf).await?;
+        let _ = self.read(&mut out).await?;
+        let l = Lexer::new(out);
+        let mut p = Parser::new(l);
+        p.parse()
+    }
+
     pub async fn cluster_new(&mut self, name: &str) -> anyhow::Result<LexiType> {
         let buf = Builder::new()
             .add_arr(2)
@@ -263,6 +307,19 @@ mod test {
         exp = LexiType::Simple("OK".to_string());
         val = client.del("vince").await?;
         assert_eq!(exp, val);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_push_pop() -> anyhow::Result<()> {
+        let mut client = Client::new("127.0.0.1:6969")?;
+        client.connect().await?;
+        let mut val = client.push("vince").await?;
+        let mut exp = LexiType::Simple("OK".to_string());
+        assert_eq!(val, exp);
+        val = client.pop().await?;
+        exp = LexiType::BulkString("vince".into());
+        assert_eq!(val, exp);
         Ok(())
     }
 
