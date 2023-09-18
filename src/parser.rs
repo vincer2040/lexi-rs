@@ -85,50 +85,42 @@ impl Parser {
                 };
                 Ok(LexiType::Array(vec))
             }
-            Some(v) => {
-                match v {
-                    Token::Int(buf) => {
-                        let res: i64;
-                        let mut temp: u64 = 0;
-                        let mut shift = 56;
-                        for b in buf.iter() {
-                            let btmp = *b as u64;
-                            temp |= btmp << shift;
-                            shift -= 8;
-                        }
-                        // hack for checking if value should be negative
-                        if temp <= 0x7fffffffffffffff {
-                            res = temp as i64;
-                        } else {
-                            res = -1 - ((0xffffffffffffffff - temp) as i64);
-                        }
-                        if !self.expect_peek(Token::RetCar) {
-                            return Err(anyhow!("peek err"));
-                        }
-                        if !self.expect_peek(Token::NewL) {
-                            return Err(anyhow!("peek err"));
-                        }
-                        self.next_token();
-                        Ok(LexiType::Int(res))
-                    }
-                    Token::Err(e) => {
-                        let s = e.to_string();
-                        if !self.expect_peek(Token::RetCar) {
-                            return Err(anyhow!("peek err"));
-                        }
-                        if !self.expect_peek(Token::NewL) {
-                            return Err(anyhow!("peek err"));
-                        }
-                        self.next_token();
-                        Ok(LexiType::Error(s))
-                    }
-                    _ => {
-                        let s = format!("no parse function for {:#?}", self.cur);
-                        Err(anyhow!(s))
-                    }
+            Some(Token::Int(buf)) => {
+                let res: i64;
+                let mut temp: u64 = 0;
+                let mut shift = 56;
+                for b in buf.iter() {
+                    let btmp = *b as u64;
+                    temp |= btmp << shift;
+                    shift -= 8;
                 }
+                // hack for checking if value should be negative
+                if temp <= 0x7fffffffffffffff {
+                    res = temp as i64;
+                } else {
+                    res = -1 - ((0xffffffffffffffff - temp) as i64);
+                }
+                if !self.expect_peek(Token::RetCar) {
+                    return Err(anyhow!("peek err"));
+                }
+                if !self.expect_peek(Token::NewL) {
+                    return Err(anyhow!("peek err"));
+                }
+                self.next_token();
+                Ok(LexiType::Int(res))
             }
-            None => Err(anyhow!("eof")),
+            Some(Token::Err(e)) => {
+                let s = e.to_string();
+                if !self.expect_peek(Token::RetCar) {
+                    return Err(anyhow!("peek err"));
+                }
+                if !self.expect_peek(Token::NewL) {
+                    return Err(anyhow!("peek err"));
+                }
+                self.next_token();
+                Ok(LexiType::Error(s))
+            }
+            _ => Err(anyhow!("illegal")),
         }
     }
 
