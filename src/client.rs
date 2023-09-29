@@ -318,7 +318,10 @@ mod test {
         assert_eq!(val, exp);
 
         val = client.entries().await?;
-        exp = LexiType::Array(vec![LexiType::Array(vec!["vince".into(), "is cool".into()])]);
+        exp = LexiType::Array(vec![LexiType::Array(vec![
+            "vince".into(),
+            "is cool".into(),
+        ])]);
         assert_eq!(val, exp);
 
         val = client.del("vince").await?;
