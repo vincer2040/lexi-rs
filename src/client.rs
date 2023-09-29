@@ -22,39 +22,11 @@ impl Client {
     }
 
     pub async fn set(&mut self, key: &str, value: impl Into<LexiType>) -> anyhow::Result<LexiType> {
-        match value.into() {
-            LexiType::BulkString(bulk) => {
-                let buf = Builder::new()
-                    .add_arr(3)
-                    .add_bulk("SET")
-                    .add_bulk(key)
-                    .add_bulk(&bulk)
-                    .out();
-                let _ = self.write(buf).await?;
-                let mut read_buf = Vec::with_capacity(4096);
-                let _ = self.read(&mut read_buf).await?;
-                let l = Lexer::new(read_buf);
-                let mut p = Parser::new(l);
-                let ret = p.parse()?;
-                Ok(ret)
-            }
-            LexiType::Int(int) => {
-                let buf = Builder::new()
-                    .add_arr(3)
-                    .add_bulk("SET")
-                    .add_bulk(key)
-                    .add_int(int)
-                    .out();
-                let _ = self.write(buf).await?;
-                let mut read_buf = Vec::with_capacity(4096);
-                let _ = self.read(&mut read_buf).await?;
-                let l = Lexer::new(read_buf);
-                let mut p = Parser::new(l);
-                let ret = p.parse()?;
-                Ok(ret)
-            }
-            _ => return Err(anyhow::anyhow!("invalid value")),
-        }
+        let buf = Self::build_set_command(key, value)?;
+        let _ = self.write(buf).await?;
+        let mut read_buf = Vec::with_capacity(4096);
+        let _ = self.read(&mut read_buf).await?;
+        Self::parse(read_buf)
     }
 
     pub async fn get(&mut self, key: &str) -> anyhow::Result<LexiType> {
@@ -66,10 +38,7 @@ impl Client {
         let _ = self.write(buf).await?;
         let mut read_buf = Vec::with_capacity(4096);
         let _ = self.read(&mut read_buf).await?;
-        let l = Lexer::new(read_buf);
-        let mut p = Parser::new(l);
-        let ret = p.parse()?;
-        Ok(ret)
+        Self::parse(read_buf)
     }
 
     pub async fn del(&mut self, key: &str) -> anyhow::Result<LexiType> {
@@ -81,54 +50,23 @@ impl Client {
         let _ = self.write(buf).await?;
         let mut read_buf = Vec::with_capacity(4096);
         let _ = self.read(&mut read_buf).await?;
-        let l = Lexer::new(read_buf);
-        let mut p = Parser::new(l);
-        let ret = p.parse()?;
-        Ok(ret)
+        Self::parse(read_buf)
     }
 
     pub async fn push(&mut self, value: impl Into<LexiType>) -> anyhow::Result<LexiType> {
-        match value.into() {
-            LexiType::Int(v) => {
-                let buf = Builder::new()
-                    .add_arr(2)
-                    .add_bulk("PUSH")
-                    .add_int(v)
-                    .out();
-                let mut out = Vec::with_capacity(4096);
-                let _ = self.write(buf).await?;
-                let _ = self.read(&mut out).await?;
-                let l = Lexer::new(out);
-                let mut p = Parser::new(l);
-                p.parse()
-            }
-            LexiType::BulkString(v) => {
-                let buf = Builder::new()
-                    .add_arr(2)
-                    .add_bulk("PUSH")
-                    .add_bulk(&v)
-                    .out();
-                let mut out = Vec::with_capacity(4096);
-                let _ = self.write(buf).await?;
-                let _ = self.read(&mut out).await?;
-                let l = Lexer::new(out);
-                let mut p = Parser::new(l);
-                p.parse()
-            }
-            _ => Err(anyhow::anyhow!("invalid value"))
-        }
+        let buf = Self::build_push_cmd(value)?;
+        let mut read_buf = Vec::with_capacity(4096);
+        let _ = self.write(buf).await?;
+        let _ = self.read(&mut read_buf).await?;
+        Self::parse(read_buf)
     }
 
     pub async fn pop(&mut self) -> anyhow::Result<LexiType> {
-        let buf = Builder::new()
-            .add_bulk("POP")
-            .out();
-        let mut out = Vec::with_capacity(4096);
+        let buf = Builder::new().add_bulk("POP").out();
+        let mut read_buf = Vec::with_capacity(4096);
         let _ = self.write(buf).await?;
-        let _ = self.read(&mut out).await?;
-        let l = Lexer::new(out);
-        let mut p = Parser::new(l);
-        p.parse()
+        let _ = self.read(&mut read_buf).await?;
+        Self::parse(read_buf)
     }
 
     pub async fn cluster_new(&mut self, name: &str) -> anyhow::Result<LexiType> {
@@ -140,10 +78,7 @@ impl Client {
         let mut read_buf = Vec::with_capacity(4096);
         let _ = self.write(buf).await?;
         let _ = self.read(&mut read_buf).await?;
-        let l = Lexer::new(read_buf);
-        let mut p = Parser::new(l);
-        let ret = p.parse()?;
-        Ok(ret)
+        Self::parse(read_buf)
     }
 
     pub async fn cluster_set(
@@ -152,41 +87,11 @@ impl Client {
         key: &str,
         value: impl Into<LexiType>,
     ) -> anyhow::Result<LexiType> {
-        match value.into() {
-            LexiType::BulkString(v) => {
-                let buf = Builder::new()
-                    .add_arr(4)
-                    .add_bulk("CLUSTER.SET")
-                    .add_bulk(name)
-                    .add_bulk(key)
-                    .add_bulk(&v)
-                    .out();
-                let mut read_buf = Vec::with_capacity(4096);
-                let _ = self.write(buf).await?;
-                let _ = self.read(&mut read_buf).await?;
-                let l = Lexer::new(read_buf);
-                let mut p = Parser::new(l);
-                let ret = p.parse()?;
-                Ok(ret)
-            }
-            LexiType::Int(v) => {
-                let buf = Builder::new()
-                    .add_arr(3)
-                    .add_bulk("CLUSTER.SET")
-                    .add_bulk(name)
-                    .add_bulk(key)
-                    .add_int(v)
-                    .out();
-                let mut read_buf = Vec::with_capacity(4096);
-                let _ = self.write(buf).await?;
-                let _ = self.read(&mut read_buf).await?;
-                let l = Lexer::new(read_buf);
-                let mut p = Parser::new(l);
-                let ret = p.parse()?;
-                Ok(ret)
-            }
-            _ => Err(anyhow::anyhow!("invalid value")),
-        }
+        let buf = Self::build_cluster_set_command(name, key, value)?;
+        let mut read_buf = Vec::with_capacity(4096);
+        let _ = self.write(buf).await?;
+        let _ = self.read(&mut read_buf).await?;
+        Self::parse(read_buf)
     }
 
     pub async fn cluster_get(&mut self, name: &str, key: &str) -> anyhow::Result<LexiType> {
@@ -199,10 +104,7 @@ impl Client {
         let mut read_buf = Vec::with_capacity(4096);
         let _ = self.write(buf).await?;
         let _ = self.read(&mut read_buf).await?;
-        let l = Lexer::new(read_buf);
-        let mut p = Parser::new(l);
-        let ret = p.parse()?;
-        Ok(ret)
+        Self::parse(read_buf)
     }
 
     pub async fn cluster_del(&mut self, name: &str, key: &str) -> anyhow::Result<LexiType> {
@@ -215,10 +117,7 @@ impl Client {
         let mut read_buf = Vec::with_capacity(4096);
         let _ = self.write(buf).await?;
         let _ = self.read(&mut read_buf).await?;
-        let l = Lexer::new(read_buf);
-        let mut p = Parser::new(l);
-        let ret = p.parse()?;
-        Ok(ret)
+        Self::parse(read_buf)
     }
 
     pub async fn cluster_drop(&mut self, name: &str) -> anyhow::Result<LexiType> {
@@ -230,10 +129,89 @@ impl Client {
         let mut read_buf = Vec::with_capacity(4096);
         let _ = self.write(buf).await?;
         let _ = self.read(&mut read_buf).await?;
-        let l = Lexer::new(read_buf);
+        Self::parse(read_buf)
+    }
+
+    fn build_set_command(key: &str, value: impl Into<LexiType>) -> anyhow::Result<Vec<u8>> {
+        match value.into() {
+            LexiType::BulkString(bulk) => {
+                let buf = Builder::new()
+                    .add_arr(3)
+                    .add_bulk("SET")
+                    .add_bulk(key)
+                    .add_bulk(&bulk)
+                    .out();
+                Ok(buf)
+            }
+            LexiType::Int(int) => {
+                let buf = Builder::new()
+                    .add_arr(3)
+                    .add_bulk("SET")
+                    .add_bulk(key)
+                    .add_int(int)
+                    .out();
+                Ok(buf)
+            }
+            _ => return Err(anyhow::anyhow!("invalid value")),
+        }
+    }
+
+    fn build_push_cmd(value: impl Into<LexiType>) -> anyhow::Result<Vec<u8>> {
+        match value.into() {
+            LexiType::BulkString(bulk) => {
+                let buf = Builder::new()
+                    .add_arr(2)
+                    .add_bulk("PUSH")
+                    .add_bulk(&bulk)
+                    .out();
+                Ok(buf)
+            }
+            LexiType::Int(int) => {
+                let buf = Builder::new()
+                    .add_arr(2)
+                    .add_bulk("PUSH")
+                    .add_int(int)
+                    .out();
+                Ok(buf)
+            }
+            _ => return Err(anyhow::anyhow!("invalid value")),
+        }
+    }
+
+    fn build_cluster_set_command(
+        cluster_name: &str,
+        key: &str,
+        value: impl Into<LexiType>,
+    ) -> anyhow::Result<Vec<u8>> {
+        match value.into() {
+            LexiType::BulkString(bulk) => {
+                let buf = Builder::new()
+                    .add_arr(4)
+                    .add_bulk("CLUSTER.SET")
+                    .add_bulk(cluster_name)
+                    .add_bulk(key)
+                    .add_bulk(&bulk)
+                    .out();
+                Ok(buf)
+            }
+            LexiType::Int(int) => {
+                let buf = Builder::new()
+                    .add_arr(4)
+                    .add_bulk("CLUSTER.SET")
+                    .add_bulk(cluster_name)
+                    .add_bulk(key)
+                    .add_int(int)
+                    .out();
+                Ok(buf)
+            }
+            _ => return Err(anyhow::anyhow!("invalid value")),
+        }
+    }
+
+    fn parse(input: Vec<u8>) -> anyhow::Result<LexiType> {
+        let l = Lexer::new(input);
         let mut p = Parser::new(l);
-        let ret = p.parse()?;
-        Ok(ret)
+        p.parse()
     }
 
     async fn write(&mut self, bytes: Vec<u8>) -> anyhow::Result<usize> {

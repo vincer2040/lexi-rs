@@ -44,6 +44,11 @@ impl Builder {
         self
     }
 
+    pub fn reset(mut self) -> Self {
+        self.buf = Vec::new();
+        self
+    }
+
     fn add_type_byte(&mut self, type_byte: TypeByte) {
         match type_byte {
             TypeByte::Array => self.buf.push(b'*'),
