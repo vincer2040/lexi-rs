@@ -144,6 +144,42 @@ impl Client {
         Self::parse(read_buf)
     }
 
+    pub async fn cluster_keys(&mut self, name: &str) -> anyhow::Result<LexiType> {
+        let buf = Builder::new()
+            .add_arr(2)
+            .add_bulk("CLUSTER.KEYS")
+            .add_bulk(name)
+            .out();
+        let mut read_buf = Vec::with_capacity(4096);
+        let _ = self.write(buf).await?;
+        let _ = self.read(&mut read_buf).await?;
+        Self::parse(read_buf)
+    }
+
+    pub async fn cluster_values(&mut self, name: &str) -> anyhow::Result<LexiType> {
+        let buf = Builder::new()
+            .add_arr(2)
+            .add_bulk("CLUSTER.VALUES")
+            .add_bulk(name)
+            .out();
+        let mut read_buf = Vec::with_capacity(4096);
+        let _ = self.write(buf).await?;
+        let _ = self.read(&mut read_buf).await?;
+        Self::parse(read_buf)
+    }
+
+    pub async fn cluster_entries(&mut self, name: &str) -> anyhow::Result<LexiType> {
+        let buf = Builder::new()
+            .add_arr(2)
+            .add_bulk("CLUSTER.ENTRIES")
+            .add_bulk(name)
+            .out();
+        let mut read_buf = Vec::with_capacity(4096);
+        let _ = self.write(buf).await?;
+        let _ = self.read(&mut read_buf).await?;
+        Self::parse(read_buf)
+    }
+
     pub async fn cluster_drop(&mut self, name: &str) -> anyhow::Result<LexiType> {
         let buf = Builder::new()
             .add_arr(2)
@@ -347,17 +383,37 @@ mod test {
     async fn test_clusters() -> anyhow::Result<()> {
         let mut client = Client::new("127.0.0.1:6969")?;
         client.connect().await?;
+
         let mut val = client.cluster_new("test").await?;
         let mut exp = LexiType::Simple("OK".to_string());
         assert_eq!(val, exp);
+
         val = client.cluster_set("test", "vince", "is cool").await?;
         assert_eq!(val, exp);
+
         exp = "is cool".into();
         val = client.cluster_get("test", "vince").await?;
         assert_eq!(val, exp);
+
+        val = client.cluster_keys("test").await?;
+        exp = LexiType::Array(vec!["vince".into()]);
+        assert_eq!(val, exp);
+
+        val = client.cluster_values("test").await?;
+        exp = LexiType::Array(vec!["is cool".into()]);
+        assert_eq!(val, exp);
+
+        val = client.cluster_entries("test").await?;
+        exp = LexiType::Array(vec![LexiType::Array(vec![
+            "vince".into(),
+            "is cool".into(),
+        ])]);
+        assert_eq!(val, exp);
+
         val = client.cluster_del("test", "vince").await?;
         exp = LexiType::Simple("OK".to_string());
         assert_eq!(val, exp);
+
         val = client.cluster_drop("test").await?;
         assert_eq!(val, exp);
         Ok(())
