@@ -69,6 +69,30 @@ impl Client {
         Self::parse(read_buf)
     }
 
+    pub async fn keys(&mut self) -> anyhow::Result<LexiType> {
+        let buf = Builder::new().add_bulk("KEYS").out();
+        let mut read_buf = Vec::with_capacity(4096);
+        let _ = self.write(buf).await?;
+        let _ = self.read(&mut read_buf).await?;
+        Self::parse(read_buf)
+    }
+
+    pub async fn values(&mut self) -> anyhow::Result<LexiType> {
+        let buf = Builder::new().add_bulk("VALUES").out();
+        let mut read_buf = Vec::with_capacity(4096);
+        let _ = self.write(buf).await?;
+        let _ = self.read(&mut read_buf).await?;
+        Self::parse(read_buf)
+    }
+
+    pub async fn entries(&mut self) -> anyhow::Result<LexiType> {
+        let buf = Builder::new().add_bulk("ENTRIES").out();
+        let mut read_buf = Vec::with_capacity(4096);
+        let _ = self.write(buf).await?;
+        let _ = self.read(&mut read_buf).await?;
+        Self::parse(read_buf)
+    }
+
     pub async fn cluster_new(&mut self, name: &str) -> anyhow::Result<LexiType> {
         let buf = Builder::new()
             .add_arr(2)
@@ -276,14 +300,29 @@ mod test {
     async fn test_set_get_delvalue() -> anyhow::Result<()> {
         let mut client = Client::new("127.0.0.1:6969")?;
         client.connect().await?;
+
         let mut val = client.set("vince", "is cool").await?;
         let mut exp = LexiType::Simple("OK".to_string());
         assert_eq!(val, exp);
+
         val = client.get("vince").await?;
         exp = "is cool".into();
         assert_eq!(val, exp);
-        exp = LexiType::Simple("OK".to_string());
+
+        val = client.keys().await?;
+        exp = LexiType::Array(vec!["vince".into()]);
+        assert_eq!(val, exp);
+
+        val = client.values().await?;
+        exp = LexiType::Array(vec!["is cool".into()]);
+        assert_eq!(val, exp);
+
+        val = client.entries().await?;
+        exp = LexiType::Array(vec![LexiType::Array(vec!["vince".into(), "is cool".into()])]);
+        assert_eq!(val, exp);
+
         val = client.del("vince").await?;
+        exp = LexiType::Simple("OK".to_string());
         assert_eq!(exp, val);
         Ok(())
     }
