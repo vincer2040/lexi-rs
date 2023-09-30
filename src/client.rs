@@ -345,6 +345,18 @@ mod test {
         exp = "is cool".into();
         assert_eq!(val, exp);
 
+        val = client.set("vince", -42069).await?;
+        exp = LexiType::Simple("OK".to_string());
+        assert_eq!(val, exp);
+
+        val = client.get("vince").await?;
+        exp = (-42069 as i64).into();
+        assert_eq!(val, exp);
+
+        val = client.set("vince", "is cool").await?;
+        exp = LexiType::Simple("OK".to_string());
+        assert_eq!(val, exp);
+
         val = client.keys().await?;
         exp = LexiType::Array(vec!["vince".into()]);
         assert_eq!(val, exp);

@@ -189,6 +189,15 @@ mod test {
     }
 
     #[test]
+    fn it_can_parse_negative_ints() {
+        let buf = Builder::new().add_int(-42069).out();
+        let l = Lexer::new(buf);
+        let mut p = Parser::new(l);
+        let val = p.parse().unwrap();
+        assert_eq!(val, LexiType::Int(-42069));
+    }
+
+    #[test]
     fn it_can_parse_errors() {
         let buf = vec![b'-', b'E', b'r', b'r', b'\r', b'\n'];
         let l = Lexer::new(buf);
