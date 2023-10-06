@@ -75,6 +75,22 @@ impl Client {
         Self::parse(read_buf)
     }
 
+    pub async fn enque(&mut self, value: impl Into<LexiType>) -> anyhow::Result<LexiType> {
+        let buf = Self::build_enque_cmd(value)?;
+        let mut read_buf = Vec::with_capacity(4096);
+        let _ = self.write(buf).await?;
+        let _ = self.read(&mut read_buf).await?;
+        Self::parse(read_buf)
+    }
+
+    pub async fn deque(&mut self) -> anyhow::Result<LexiType> {
+        let buf = Builder::new().add_bulk("DEQUE").out();
+        let mut read_buf = Vec::with_capacity(4096);
+        let _ = self.write(buf).await?;
+        let _ = self.read(&mut read_buf).await?;
+        Self::parse(read_buf)
+    }
+
     pub async fn keys(&mut self) -> anyhow::Result<LexiType> {
         let buf = Builder::new().add_bulk("KEYS").out();
         let mut read_buf = Vec::with_capacity(4096);
@@ -236,6 +252,28 @@ impl Client {
                 let buf = Builder::new()
                     .add_arr(2)
                     .add_bulk("PUSH")
+                    .add_int(int)
+                    .out();
+                Ok(buf)
+            }
+            _ => return Err(anyhow::anyhow!("invalid value")),
+        }
+    }
+
+    fn build_enque_cmd(value: impl Into<LexiType>) -> anyhow::Result<Vec<u8>> {
+        match value.into() {
+            LexiType::BulkString(bulk) => {
+                let buf = Builder::new()
+                    .add_arr(2)
+                    .add_bulk("ENQUE")
+                    .add_bulk(&bulk)
+                    .out();
+                Ok(buf)
+            }
+            LexiType::Int(int) => {
+                let buf = Builder::new()
+                    .add_arr(2)
+                    .add_bulk("ENQUE")
                     .add_int(int)
                     .out();
                 Ok(buf)
