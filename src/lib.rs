@@ -1,6 +1,6 @@
-pub mod builder;
+mod builder;
+mod lexer;
+mod parser;
+mod token;
 pub mod client;
-pub mod lexer;
 pub mod lexi_type;
-pub mod parser;
-pub mod token;
