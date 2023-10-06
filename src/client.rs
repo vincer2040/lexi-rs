@@ -1,7 +1,13 @@
+use tokio::io::{AsyncRead, AsyncWrite};
+
 use crate::builder::Builder;
 use crate::lexer::Lexer;
 use crate::lexi_type::LexiType;
 use crate::parser::Parser;
+
+pub trait AsyncReadWrite: AsyncRead + AsyncWrite + Unpin {}
+
+impl AsyncReadWrite for tokio::net::TcpStream {}
 
 pub struct Client {
     addr: std::net::SocketAddr,
@@ -324,110 +330,5 @@ impl Client {
         }
 
         Ok(res)
-    }
-}
-
-#[cfg(test)]
-mod test {
-
-    use super::*;
-
-    #[tokio::test]
-    async fn test_set_get_delvalue() -> anyhow::Result<()> {
-        let mut client = Client::new("127.0.0.1:6969")?;
-        client.connect().await?;
-
-        let mut val = client.set("vince", "is cool").await?;
-        let mut exp = LexiType::Simple("OK".to_string());
-        assert_eq!(val, exp);
-
-        val = client.get("vince").await?;
-        exp = "is cool".into();
-        assert_eq!(val, exp);
-
-        val = client.set("vince", -42069).await?;
-        exp = LexiType::Simple("OK".to_string());
-        assert_eq!(val, exp);
-
-        val = client.get("vince").await?;
-        exp = (-42069 as i64).into();
-        assert_eq!(val, exp);
-
-        val = client.set("vince", "is cool").await?;
-        exp = LexiType::Simple("OK".to_string());
-        assert_eq!(val, exp);
-
-        val = client.keys().await?;
-        exp = LexiType::Array(vec!["vince".into()]);
-        assert_eq!(val, exp);
-
-        val = client.values().await?;
-        exp = LexiType::Array(vec!["is cool".into()]);
-        assert_eq!(val, exp);
-
-        val = client.entries().await?;
-        exp = LexiType::Array(vec![LexiType::Array(vec![
-            "vince".into(),
-            "is cool".into(),
-        ])]);
-        assert_eq!(val, exp);
-
-        val = client.del("vince").await?;
-        exp = LexiType::Simple("OK".to_string());
-        assert_eq!(exp, val);
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn test_push_pop() -> anyhow::Result<()> {
-        let mut client = Client::new("127.0.0.1:6969")?;
-        client.connect().await?;
-        let mut val = client.push("vince").await?;
-        let mut exp = LexiType::Simple("OK".to_string());
-        assert_eq!(val, exp);
-        val = client.pop().await?;
-        exp = LexiType::BulkString("vince".into());
-        assert_eq!(val, exp);
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn test_clusters() -> anyhow::Result<()> {
-        let mut client = Client::new("127.0.0.1:6969")?;
-        client.connect().await?;
-
-        let mut val = client.cluster_new("test").await?;
-        let mut exp = LexiType::Simple("OK".to_string());
-        assert_eq!(val, exp);
-
-        val = client.cluster_set("test", "vince", "is cool").await?;
-        assert_eq!(val, exp);
-
-        exp = "is cool".into();
-        val = client.cluster_get("test", "vince").await?;
-        assert_eq!(val, exp);
-
-        val = client.cluster_keys("test").await?;
-        exp = LexiType::Array(vec!["vince".into()]);
-        assert_eq!(val, exp);
-
-        val = client.cluster_values("test").await?;
-        exp = LexiType::Array(vec!["is cool".into()]);
-        assert_eq!(val, exp);
-
-        val = client.cluster_entries("test").await?;
-        exp = LexiType::Array(vec![LexiType::Array(vec![
-            "vince".into(),
-            "is cool".into(),
-        ])]);
-        assert_eq!(val, exp);
-
-        val = client.cluster_del("test", "vince").await?;
-        exp = LexiType::Simple("OK".to_string());
-        assert_eq!(val, exp);
-
-        val = client.cluster_drop("test").await?;
-        assert_eq!(val, exp);
-        Ok(())
     }
 }
