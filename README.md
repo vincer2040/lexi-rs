@@ -1,19 +1,19 @@
 # lexi-rs
 
-a rust client for [lexidb](https://github.com/vincer2040/lexidb), an in memory data structure database. 
+a rust client for [lexidb](https://github.com/vincer2040/lexidb), an in memory data structure database.
 
 ## Getting started
 
-### install this package 
+### install this package
 
 ```console
 $ cargo add lexi-rs
 ```
 
-### Basic Usage 
+### Basic Usage
 
-currently, values that are set must implement Into<LexiType>. Data types that implement 
-this trait include: 
+currently, values that are set must implement Into<LexiType>. Data types that implement
+this trait include:
 
 1. &str
 2. String,
@@ -42,7 +42,7 @@ async fn main() -> anyhow::Result<()> {
 }
 ```
 
-#### clusters 
+#### clusters
 
 ```rs
 let new_cluster_res = client.cluster_new("name").await?;
@@ -62,7 +62,7 @@ assert_eq!(cluster_drop_res, lexi::LexiType::Simple("OK".to_owned()));
 ```
 
 
-#### stack 
+#### stack
 
 ```rs
 let push_res = client.push("vince").await?;
@@ -70,4 +70,13 @@ assert_eq!(push_res, LexiType::Simple("OK".to_owned()));
 
 let pop_res = client.pop().await?;
 assert_eq!(pop_res, LexiType::BulkString("vince".to_owned());
+```
+
+### queue
+```rs
+let enque_res = client.enque("vince").await?;
+assert_eq!(enque_res, LexiType::Simple("OK".to_owned()));
+
+let deque_res = client.deque().await?;
+assert_eq!(deque_res, LexiType::BulkString("vince".to_owned());
 ```
