@@ -72,7 +72,7 @@ let pop_res = client.pop().await?;
 assert_eq!(pop_res, LexiType::BulkString("vince".to_owned());
 ```
 
-### queue
+#### queue
 ```rs
 let enque_res = client.enque("vince").await?;
 assert_eq!(enque_res, LexiType::Simple("OK".to_owned()));
