@@ -6,12 +6,23 @@ enum TypeByte {
     Array,
     Bulk,
     Int,
+    Simple,
 }
 
 impl Builder {
     pub fn new() -> Self {
         let buf = Vec::new();
         Builder { buf }
+    }
+
+    pub fn add_ping(mut self) -> Self {
+        self.add_type_byte(TypeByte::Simple);
+        self.buf.push(b'P');
+        self.buf.push(b'I');
+        self.buf.push(b'N');
+        self.buf.push(b'G');
+        self.add_end();
+        self
     }
 
     pub fn add_arr(mut self, len: usize) -> Self {
@@ -54,6 +65,7 @@ impl Builder {
             TypeByte::Array => self.buf.push(b'*'),
             TypeByte::Bulk => self.buf.push(b'$'),
             TypeByte::Int => self.buf.push(b':'),
+            TypeByte::Simple => self.buf.push(b'+'),
         }
     }
 
