@@ -1,13 +1,7 @@
-use tokio::io::{AsyncRead, AsyncWrite};
-
 use crate::builder::Builder;
 use crate::lexer::Lexer;
 use crate::lexi_type::LexiType;
 use crate::parser::Parser;
-
-pub trait AsyncReadWrite: AsyncRead + AsyncWrite + Unpin {}
-
-impl AsyncReadWrite for tokio::net::TcpStream {}
 
 pub struct Client {
     addr: std::net::SocketAddr,
@@ -25,6 +19,14 @@ impl Client {
         let stream = socket.connect(self.addr).await?;
         self.stream = Some(stream);
         Ok(())
+    }
+
+    pub async fn ping(&mut self) -> anyhow::Result<LexiType> {
+        let buf = Builder::new().add_ping().out();
+        let _ = self.write(buf).await?;
+        let mut read_buf = Vec::with_capacity(4096);
+        let _ = self.read(&mut read_buf).await?;
+        Self::parse(read_buf)
     }
 
     pub async fn set(&mut self, key: &str, value: impl Into<LexiType>) -> anyhow::Result<LexiType> {
