@@ -1,6 +1,7 @@
 use crate::builder::Builder;
 use crate::lexer::Lexer;
 use crate::lexi_type::LexiType;
+use crate::multi::Multi;
 use crate::parser::Parser;
 
 pub struct Client {
@@ -311,6 +312,13 @@ impl Client {
                 Ok(buf)
             }
             _ => return Err(anyhow::anyhow!("invalid value")),
+        }
+    }
+
+    pub fn multi<'a>(&'a self) -> anyhow::Result<Multi<'a>> {
+        match &self.stream {
+            Some(stream) => Ok(Multi::new(stream)),
+            None => Err(anyhow::anyhow!("client not connected")),
         }
     }
 
