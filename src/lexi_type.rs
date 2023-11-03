@@ -1,4 +1,4 @@
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, serde::Serialize)]
 pub enum LexiType {
     BulkString(String),
     Array(Vec<LexiType>),
