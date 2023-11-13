@@ -217,6 +217,16 @@ impl Client {
         Self::parse(read_buf)
     }
 
+    pub async fn stats_cycles(&mut self) -> anyhow::Result<LexiType> {
+        let buf = Builder::new()
+            .add_bulk("STATS.CYCLES")
+            .out();
+        let mut read_buf = Vec::with_capacity(4069);
+        let _ = self.write(buf).await?;
+        let _ = self.read(&mut read_buf).await?;
+        Self::parse(read_buf)
+    }
+
     fn build_set_command(key: &str, value: impl Into<LexiType>) -> anyhow::Result<Vec<u8>> {
         match value.into() {
             LexiType::BulkString(bulk) => {

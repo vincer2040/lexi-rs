@@ -287,6 +287,10 @@ impl<'a> Multi<'a> {
                         .add_bulk("CLUSTER.DROP")
                         .add_bulk(cluster_drop_cmd.name);
                 }
+                Cmd::StatsCycles => {
+                    b = b
+                        .add_bulk("STATS.CYCLES");
+                }
             };
         }
 

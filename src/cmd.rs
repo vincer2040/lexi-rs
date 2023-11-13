@@ -7,6 +7,7 @@ pub enum Cmd<'a> {
     Keys,
     Values,
     Entries,
+    StatsCycles,
     Set(SetCmd<'a>),
     Get(GetCmd<'a>),
     Del(DelCmd<'a>),
