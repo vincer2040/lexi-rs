@@ -1,6 +1,6 @@
 [package]
 name = "lexi-rs"
-version = "0.1.4"
+version = "0.1.5"
 edition = "2021"
 description = "a client for lexidb - an in memory data structure database"
 license = "MIT"
