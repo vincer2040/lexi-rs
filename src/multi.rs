@@ -166,6 +166,12 @@ impl<'a> Multi<'a> {
         self
     }
 
+    pub fn add_stats_cycles(mut self) -> Self {
+        let cmd = Cmd::StatsCycles;
+        self.cmds.push(cmd);
+        self
+    }
+
     pub async fn run(mut self) -> anyhow::Result<LexiType> {
         let buf = self.build_cmd();
         let mut read_buf = Vec::with_capacity(4096);
