@@ -1,4 +1,4 @@
-use crate::lexi_data::LexiData;
+use crate::lexi_data::{LexiData, SimpleString};
 
 pub struct Parser<'a> {
     input: &'a [u8],
@@ -20,6 +20,7 @@ impl<'a> Parser<'a> {
     pub fn parse(&mut self) -> anyhow::Result<LexiData> {
         match self.ch {
             b'$' => self.parse_string(),
+            b'+' => self.parse_simple(),
             _ => todo!(),
         }
     }
@@ -27,15 +28,15 @@ impl<'a> Parser<'a> {
     fn parse_string(&mut self) -> anyhow::Result<LexiData> {
         let mut string = String::new();
         if !self.expect_peek_to_be_num() {
-            return Err(anyhow::anyhow!("expected length"))
+            return Err(anyhow::anyhow!("expected length"));
         }
         let length = self.parse_length();
 
         if !self.cur_byte_is(b'\r') {
-            return Err(anyhow::anyhow!("expected retcar"))
+            return Err(anyhow::anyhow!("expected retcar"));
         }
         if !self.expect_peek(b'\n') {
-            return Err(anyhow::anyhow!("expected newline"))
+            return Err(anyhow::anyhow!("expected newline"));
         }
 
         self.read_byte();
@@ -46,14 +47,37 @@ impl<'a> Parser<'a> {
         }
 
         if !self.cur_byte_is(b'\r') {
-            return Err(anyhow::anyhow!("expected retcar"))
+            return Err(anyhow::anyhow!("expected retcar"));
         }
         if !self.expect_peek(b'\n') {
-            return Err(anyhow::anyhow!("expected newline"))
+            return Err(anyhow::anyhow!("expected newline"));
         }
 
         self.read_byte();
         return Ok(LexiData::Bulk(string));
+    }
+
+    fn parse_simple(&mut self) -> anyhow::Result<LexiData> {
+        let mut string = String::new();
+        self.read_byte();
+        while self.ch != b'\r' && self.ch != 0 {
+            string.push(self.ch as char);
+            self.read_byte();
+        }
+        let simple_string = match string.as_str() {
+            "OK" => SimpleString::Ok,
+            "PONG" => SimpleString::Pong,
+            _ => return Err(anyhow::anyhow!("unkown simple string")),
+        };
+
+        if !self.cur_byte_is(b'\r') {
+            return Err(anyhow::anyhow!("expected retcar"));
+        }
+        if !self.expect_peek(b'\n') {
+            return Err(anyhow::anyhow!("expected newline"));
+        }
+        self.read_byte();
+        return Ok(LexiData::Simple(simple_string));
     }
 
     fn parse_length(&mut self) -> usize {
@@ -112,7 +136,7 @@ impl<'a> Parser<'a> {
 #[cfg(test)]
 mod test {
 
-    use crate::lexi_data::LexiData;
+    use crate::lexi_data::{LexiData, SimpleString};
 
     use super::Parser;
 
@@ -121,12 +145,21 @@ mod test {
         exp: &'static str,
     }
 
+    struct SimpleTest<'a> {
+        input: &'a [u8],
+        exp: SimpleString,
+    }
+
     #[test]
     fn it_can_parse_strings() -> anyhow::Result<()> {
         let tests = [
             StringTest {
                 input: b"$3\r\nfoo\r\n",
                 exp: "foo",
+            },
+            StringTest {
+                input: b"$7\r\nfoo\nbar\r\n",
+                exp: "foo\nbar",
             },
         ];
 
@@ -140,6 +173,31 @@ mod test {
             }
         }
 
+        Ok(())
+    }
+
+    #[test]
+    fn it_can_parse_simple_strings() -> anyhow::Result<()> {
+        let tests = [
+            SimpleTest {
+                input: b"+OK\r\n",
+                exp: SimpleString::Ok,
+            },
+            SimpleTest {
+                input: b"+PONG\r\n",
+                exp: SimpleString::Pong,
+            },
+        ];
+
+        for test in tests {
+            let mut p = Parser::new(test.input);
+            let data = p.parse()?;
+            assert!(matches!(data, LexiData::Simple(_)));
+            match data {
+                LexiData::Simple(s) => assert_eq!(test.exp, s),
+                _ => unreachable!(),
+            }
+        }
         Ok(())
     }
 }
