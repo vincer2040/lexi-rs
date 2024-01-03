@@ -79,6 +79,24 @@ impl Client {
         Self::parse(&bytes)
     }
 
+    pub async fn enque(&mut self, value: impl Into<LexiData>) -> anyhow::Result<LexiData> {
+        let buf = Builder::new()
+            .add_arr(2)
+            .add_bulk("ENQUE")
+            .add_impl_lexi_data(value)
+            .out();
+        let bytes = self.send_and_read(&buf).await?;
+        Self::parse(&bytes)
+    }
+
+    pub async fn deque(&mut self) -> anyhow::Result<LexiData> {
+        let buf = Builder::new()
+            .add_bulk("DEQUE")
+            .out();
+        let bytes = self.send_and_read(&buf).await?;
+        Self::parse(&bytes)
+    }
+
     fn parse(buf: &Vec<u8>) -> anyhow::Result<LexiData> {
         let mut p = Parser::new(buf);
         p.parse()
