@@ -2,6 +2,7 @@
 pub enum SimpleString {
     Ok,
     Pong,
+    None,
 }
 
 #[derive(Debug)]

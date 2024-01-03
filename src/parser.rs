@@ -97,6 +97,7 @@ impl<'a> Parser<'a> {
         let simple_string = match string.as_str() {
             "OK" => SimpleString::Ok,
             "PONG" => SimpleString::Pong,
+            "NONE" => SimpleString::None,
             _ => return Err(anyhow::anyhow!("unkown simple string")),
         };
 
@@ -231,6 +232,10 @@ mod test {
             ParserTest {
                 input: b"+PONG\r\n",
                 exp: SimpleString::Pong,
+            },
+            ParserTest {
+                input: b"+NONE\r\n",
+                exp: SimpleString::None,
             },
         ];
 
