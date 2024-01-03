@@ -72,9 +72,7 @@ impl Client {
     }
 
     pub async fn pop(&mut self) -> anyhow::Result<LexiData> {
-        let buf = Builder::new()
-            .add_bulk("POP")
-            .out();
+        let buf = Builder::new().add_bulk("POP").out();
         let bytes = self.send_and_read(&buf).await?;
         Self::parse(&bytes)
     }
@@ -90,8 +88,36 @@ impl Client {
     }
 
     pub async fn deque(&mut self) -> anyhow::Result<LexiData> {
+        let buf = Builder::new().add_bulk("DEQUE").out();
+        let bytes = self.send_and_read(&buf).await?;
+        Self::parse(&bytes)
+    }
+
+    pub async fn zset(&mut self, value: impl Into<LexiData>) -> anyhow::Result<LexiData> {
         let buf = Builder::new()
-            .add_bulk("DEQUE")
+            .add_arr(2)
+            .add_bulk("ZSET")
+            .add_impl_lexi_data(value)
+            .out();
+        let bytes = self.send_and_read(&buf).await?;
+        Self::parse(&bytes)
+    }
+
+    pub async fn zhas(&mut self, value: impl Into<LexiData>) -> anyhow::Result<LexiData> {
+        let buf = Builder::new()
+            .add_arr(2)
+            .add_bulk("ZHAS")
+            .add_impl_lexi_data(value)
+            .out();
+        let bytes = self.send_and_read(&buf).await?;
+        Self::parse(&bytes)
+    }
+
+    pub async fn zdel(&mut self, value: impl Into<LexiData>) -> anyhow::Result<LexiData> {
+        let buf = Builder::new()
+            .add_arr(2)
+            .add_bulk("ZDEL")
+            .add_impl_lexi_data(value)
             .out();
         let bytes = self.send_and_read(&buf).await?;
         Self::parse(&bytes)
