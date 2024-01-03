@@ -21,6 +21,7 @@ impl<'a> Parser<'a> {
         match self.ch {
             b'$' => self.parse_string(),
             b'+' => self.parse_simple(),
+            b':' => self.parse_int(),
             _ => todo!(),
         }
     }
@@ -55,6 +56,33 @@ impl<'a> Parser<'a> {
 
         self.read_byte();
         return Ok(LexiData::Bulk(string));
+    }
+
+    fn parse_int(&mut self) -> anyhow::Result<LexiData> {
+        self.read_byte();
+        let mut tmp: u64 = 0;
+        let mut shift = 56;
+        let res: i64;
+        for _ in 0..8 {
+            tmp |= (self.ch as u64) << shift;
+            self.read_byte();
+            shift -= 8;
+        }
+        if tmp <= 0x7fffffffffffffff {
+            res = tmp as i64;
+        } else {
+            res = -1 - ((0xffffffffffffffff - tmp) as i64);
+        }
+
+        if !self.cur_byte_is(b'\r') {
+            return Err(anyhow::anyhow!("expected retcar"));
+        }
+        if !self.expect_peek(b'\n') {
+            return Err(anyhow::anyhow!("expected newline"));
+        }
+
+        self.read_byte();
+        return Ok(LexiData::Int(res));
     }
 
     fn parse_simple(&mut self) -> anyhow::Result<LexiData> {
@@ -136,28 +164,24 @@ impl<'a> Parser<'a> {
 #[cfg(test)]
 mod test {
 
+    use crate::builder::Builder;
     use crate::lexi_data::{LexiData, SimpleString};
 
     use super::Parser;
 
-    struct StringTest<'a> {
+    struct ParserTest<'a, T> {
         input: &'a [u8],
-        exp: &'static str,
-    }
-
-    struct SimpleTest<'a> {
-        input: &'a [u8],
-        exp: SimpleString,
+        exp: T,
     }
 
     #[test]
     fn it_can_parse_strings() -> anyhow::Result<()> {
         let tests = [
-            StringTest {
+            ParserTest {
                 input: b"$3\r\nfoo\r\n",
                 exp: "foo",
             },
-            StringTest {
+            ParserTest {
                 input: b"$7\r\nfoo\nbar\r\n",
                 exp: "foo\nbar",
             },
@@ -179,11 +203,11 @@ mod test {
     #[test]
     fn it_can_parse_simple_strings() -> anyhow::Result<()> {
         let tests = [
-            SimpleTest {
+            ParserTest {
                 input: b"+OK\r\n",
                 exp: SimpleString::Ok,
             },
-            SimpleTest {
+            ParserTest {
                 input: b"+PONG\r\n",
                 exp: SimpleString::Pong,
             },
@@ -195,6 +219,31 @@ mod test {
             assert!(matches!(data, LexiData::Simple(_)));
             match data {
                 LexiData::Simple(s) => assert_eq!(test.exp, s),
+                _ => unreachable!(),
+            }
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn it_can_parse_integers() -> anyhow::Result<()> {
+        let tests = [
+            ParserTest {
+                input: &Builder::new().add_int(12345).out(),
+                exp: 12345,
+            },
+            ParserTest {
+                input: &Builder::new().add_int(-12345).out(),
+                exp: -12345,
+            },
+        ];
+
+        for test in tests {
+            let mut p = Parser::new(test.input);
+            let data = p.parse()?;
+            assert!(matches!(data, LexiData::Int(_)));
+            match data {
+                LexiData::Int(i) => assert_eq!(test.exp, i),
                 _ => unreachable!(),
             }
         }
