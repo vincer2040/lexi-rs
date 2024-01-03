@@ -1,3 +1,5 @@
+use crate::lexi_data::LexiData;
+
 pub struct Builder {
     buf: Vec<u8>,
 }
@@ -55,9 +57,12 @@ impl Builder {
         self
     }
 
-    pub fn reset(mut self) -> Self {
-        self.buf = Vec::new();
-        self
+    pub fn add_impl_lexi_data(self, value: impl Into<LexiData>) -> Self {
+        match value.into() {
+            LexiData::Bulk(s) => self.add_bulk(&s),
+            LexiData::Int(i) => self.add_int(i),
+            _ => unreachable!()
+        }
     }
 
     fn add_type_byte(&mut self, type_byte: TypeByte) {
