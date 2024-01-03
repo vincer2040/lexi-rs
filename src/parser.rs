@@ -22,6 +22,7 @@ impl<'a> Parser<'a> {
             b'$' => self.parse_string(),
             b'+' => self.parse_simple(),
             b':' => self.parse_int(),
+            b'-' => self.parse_error(),
             _ => todo!(),
         }
     }
@@ -92,6 +93,7 @@ impl<'a> Parser<'a> {
             string.push(self.ch as char);
             self.read_byte();
         }
+
         let simple_string = match string.as_str() {
             "OK" => SimpleString::Ok,
             "PONG" => SimpleString::Pong,
@@ -106,6 +108,24 @@ impl<'a> Parser<'a> {
         }
         self.read_byte();
         return Ok(LexiData::Simple(simple_string));
+    }
+
+    fn parse_error(&mut self) -> anyhow::Result<LexiData> {
+        let mut string = String::new();
+        self.read_byte();
+        while self.ch != b'\r' && self.ch != 0 {
+            string.push(self.ch as char);
+            self.read_byte();
+        }
+
+        if !self.cur_byte_is(b'\r') {
+            return Err(anyhow::anyhow!("expected retcar"));
+        }
+        if !self.expect_peek(b'\n') {
+            return Err(anyhow::anyhow!("expected newline"));
+        }
+        self.read_byte();
+        return Ok(LexiData::Error(string));
     }
 
     fn parse_length(&mut self) -> usize {
@@ -154,6 +174,7 @@ impl<'a> Parser<'a> {
 
     fn read_byte(&mut self) {
         if self.pos >= self.input.len() {
+            self.ch = 0;
             return;
         }
         self.ch = self.input[self.pos];
@@ -244,6 +265,31 @@ mod test {
             assert!(matches!(data, LexiData::Int(_)));
             match data {
                 LexiData::Int(i) => assert_eq!(test.exp, i),
+                _ => unreachable!(),
+            }
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn parse_error() -> anyhow::Result<()> {
+        let tests = [
+            ParserTest {
+                input: b"-Invalid command\r\n",
+                exp: "Invalid command",
+            },
+            ParserTest {
+                input: b"-failed to set\r\n",
+                exp: "failed to set",
+            },
+        ];
+
+        for test in tests {
+            let mut p = Parser::new(test.input);
+            let data = p.parse()?;
+            assert!(matches!(data, LexiData::Error(_)));
+            match data {
+                LexiData::Error(e) => assert_eq!(test.exp, e),
                 _ => unreachable!(),
             }
         }
