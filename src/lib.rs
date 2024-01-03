@@ -1,4 +1,4 @@
 mod builder;
 mod parser;
-mod cmd;
+mod lexi_data;
 pub mod client;
