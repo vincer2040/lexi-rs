@@ -140,7 +140,9 @@ mod test {
     #[test]
     fn builder_can_add_doubles() {
         let buf = Builder::new().add_double(1337.1337).out();
-        let t = vec![b',', b'1', b'3', b'3', b'7', b'.', b'1', b'3', b'3', b'7', b'\r', b'\n'];
+        let t = vec![
+            b',', b'1', b'3', b'3', b'7', b'.', b'1', b'3', b'3', b'7', b'\r', b'\n',
+        ];
         assert_eq!(buf, t);
     }
 }

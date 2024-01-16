@@ -327,7 +327,7 @@ mod test {
             ParserTest {
                 input: b",1337\r\n",
                 exp: 1337.0 as f64,
-            }
+            },
         ];
 
         for test in tests {
