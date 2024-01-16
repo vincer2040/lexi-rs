@@ -24,8 +24,32 @@ impl<'a> Parser<'a> {
             b':' => self.parse_int(),
             b',' => self.parse_double(),
             b'-' => self.parse_error(),
+            b'*' => self.parse_array(),
             _ => todo!(),
         }
+    }
+
+    fn parse_array(&mut self) -> anyhow::Result<LexiData> {
+        if !self.expect_peek_to_be_num() {
+            return Err(anyhow::anyhow!("expected length"));
+        }
+        let length = self.parse_length();
+        if !self.cur_byte_is(b'\r') {
+            return Err(anyhow::anyhow!("expected retcar"));
+        }
+        if !self.expect_peek(b'\n') {
+            return Err(anyhow::anyhow!("expected newline"));
+        }
+
+        self.read_byte();
+
+        let mut res = Vec::new();
+
+        for _ in 0..length {
+            let cur = self.parse()?;
+            res.push(cur);
+        }
+        return Ok(LexiData::Array(res));
     }
 
     fn parse_string(&mut self) -> anyhow::Result<LexiData> {
@@ -340,6 +364,20 @@ mod test {
             }
         }
 
+        Ok(())
+    }
+
+    #[test]
+    fn parse_array() -> anyhow::Result<()> {
+        let input = b"*2\r\n$3\r\nfoo\r\n$3\r\nbar\r\n";
+        let mut p = Parser::new(input);
+        let data = p.parse()?;
+        assert!(matches!(data, LexiData::Array(_)));
+        let exp: Vec<LexiData> = vec!["foo".into(), "bar".into()];
+        match data {
+            LexiData::Array(arr) => assert_eq!(exp, arr),
+            _ => assert!(false),
+        }
         Ok(())
     }
 }

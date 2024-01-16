@@ -5,7 +5,7 @@ pub enum SimpleString {
     None,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum LexiData {
     Simple(SimpleString),
     Int(i64),
