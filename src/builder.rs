@@ -8,6 +8,7 @@ enum TypeByte {
     Array,
     Bulk,
     Int,
+    Double,
     Simple,
 }
 
@@ -47,8 +48,18 @@ impl Builder {
     pub fn add_int(mut self, int: i64) -> Self {
         self.add_type_byte(TypeByte::Int);
         let s = int.to_string();
-        for ch in s.chars() {
-            self.buf.push(ch as u8);
+        for ch in s.bytes() {
+            self.buf.push(ch);
+        }
+        self.add_end();
+        self
+    }
+
+    pub fn add_double(mut self, dbl: f64) -> Self {
+        self.add_type_byte(TypeByte::Double);
+        let s = dbl.to_string();
+        for ch in s.bytes() {
+            self.buf.push(ch)
         }
         self.add_end();
         self
@@ -58,6 +69,7 @@ impl Builder {
         match value.into() {
             LexiData::Bulk(s) => self.add_bulk(&s),
             LexiData::Int(i) => self.add_int(i),
+            LexiData::Double(d) => self.add_double(d),
             _ => unreachable!(),
         }
     }
@@ -67,6 +79,7 @@ impl Builder {
             TypeByte::Array => self.buf.push(b'*'),
             TypeByte::Bulk => self.buf.push(b'$'),
             TypeByte::Int => self.buf.push(b':'),
+            TypeByte::Double => self.buf.push(b','),
             TypeByte::Simple => self.buf.push(b'+'),
         }
     }
@@ -122,5 +135,12 @@ mod test {
         let buf = Builder::new().add_int(42069).out();
         let t = vec![b':', b'4', b'2', b'0', b'6', b'9', b'\r', b'\n'];
         assert_eq!(t, buf);
+    }
+
+    #[test]
+    fn builder_can_add_doubles() {
+        let buf = Builder::new().add_double(1337.1337).out();
+        let t = vec![b',', b'1', b'3', b'3', b'7', b'.', b'1', b'3', b'3', b'7', b'\r', b'\n'];
+        assert_eq!(buf, t);
     }
 }

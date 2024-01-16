@@ -22,6 +22,7 @@ impl<'a> Parser<'a> {
             b'$' => self.parse_string(),
             b'+' => self.parse_simple(),
             b':' => self.parse_int(),
+            b',' => self.parse_double(),
             b'-' => self.parse_error(),
             _ => todo!(),
         }
@@ -77,6 +78,26 @@ impl<'a> Parser<'a> {
 
         self.read_byte();
         return Ok(LexiData::Int(res));
+    }
+
+    fn parse_double(&mut self) -> anyhow::Result<LexiData> {
+        self.read_byte();
+        let mut s = String::new();
+        while self.ch != b'\r' && self.ch != 0 {
+            s.push(self.ch as char);
+            self.read_byte();
+        }
+        if !self.cur_byte_is(b'\r') {
+            return Err(anyhow::anyhow!("expected retcar"));
+        }
+        if !self.expect_peek(b'\n') {
+            return Err(anyhow::anyhow!("expected newline"));
+        }
+
+        let res: f64 = s.parse()?;
+
+        self.read_byte();
+        return Ok(LexiData::Double(res));
     }
 
     fn parse_simple(&mut self) -> anyhow::Result<LexiData> {
@@ -289,6 +310,36 @@ mod test {
                 _ => unreachable!(),
             }
         }
+        Ok(())
+    }
+
+    #[test]
+    fn parse_double() -> anyhow::Result<()> {
+        let tests = [
+            ParserTest {
+                input: b",1337.1337\r\n",
+                exp: 1337.1337 as f64,
+            },
+            ParserTest {
+                input: b",1337.0\r\n",
+                exp: 1337.0 as f64,
+            },
+            ParserTest {
+                input: b",1337\r\n",
+                exp: 1337.0 as f64,
+            }
+        ];
+
+        for test in tests {
+            let mut p = Parser::new(test.input);
+            let data = p.parse()?;
+            assert!(matches!(data, LexiData::Double(_)));
+            match data {
+                LexiData::Double(d) => assert_eq!(test.exp, d),
+                _ => assert!(false),
+            }
+        }
+
         Ok(())
     }
 }

@@ -9,6 +9,7 @@ pub enum SimpleString {
 pub enum LexiData {
     Simple(SimpleString),
     Int(i64),
+    Double(f64),
     Bulk(String),
     Error(String),
     Array(Vec<LexiData>),
@@ -65,5 +66,17 @@ impl Into<LexiData> for u16 {
 impl Into<LexiData> for u8 {
     fn into(self) -> LexiData {
         LexiData::Int(self as i64)
+    }
+}
+
+impl Into<LexiData> for f64 {
+    fn into(self) -> LexiData {
+        LexiData::Double(self)
+    }
+}
+
+impl Into<LexiData> for f32 {
+    fn into(self) -> LexiData {
+        LexiData::Double(self as f64)
     }
 }
