@@ -45,13 +45,10 @@ impl Builder {
     }
 
     pub fn add_int(mut self, int: i64) -> Self {
-        let mut shift = 56;
-        let end = 8;
         self.add_type_byte(TypeByte::Int);
-        for _ in 0..end {
-            let byte = (int >> shift) as u8;
-            self.buf.push(byte);
-            shift -= 8;
+        let s = int.to_string();
+        for ch in s.chars() {
+            self.buf.push(ch as u8);
         }
         self.add_end();
         self
@@ -61,7 +58,7 @@ impl Builder {
         match value.into() {
             LexiData::Bulk(s) => self.add_bulk(&s),
             LexiData::Int(i) => self.add_int(i),
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     }
 
@@ -123,9 +120,7 @@ mod test {
     #[test]
     fn builder_can_add_integers() {
         let buf = Builder::new().add_int(42069).out();
-        let t = vec![
-            0x3a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xa4, 0x55, 0x0d, 0x0a,
-        ];
+        let t = vec![b':', b'4', b'2', b'0', b'6', b'9', b'\r', b'\n'];
         assert_eq!(t, buf);
     }
 }

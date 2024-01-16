@@ -61,26 +61,19 @@ impl<'a> Parser<'a> {
 
     fn parse_int(&mut self) -> anyhow::Result<LexiData> {
         self.read_byte();
-        let mut tmp: u64 = 0;
-        let mut shift = 56;
-        let res: i64;
-        for _ in 0..8 {
-            tmp |= (self.ch as u64) << shift;
+        let mut s = String::new();
+        while self.ch != b'\r' && self.ch != 0 {
+            s.push(self.ch as char);
             self.read_byte();
-            shift -= 8;
         }
-        if tmp <= 0x7fffffffffffffff {
-            res = tmp as i64;
-        } else {
-            res = -1 - ((0xffffffffffffffff - tmp) as i64);
-        }
-
         if !self.cur_byte_is(b'\r') {
             return Err(anyhow::anyhow!("expected retcar"));
         }
         if !self.expect_peek(b'\n') {
             return Err(anyhow::anyhow!("expected newline"));
         }
+
+        let res: i64 = s.parse()?;
 
         self.read_byte();
         return Ok(LexiData::Int(res));
@@ -185,8 +178,6 @@ impl<'a> Parser<'a> {
 
 #[cfg(test)]
 mod test {
-
-    use crate::builder::Builder;
     use crate::lexi_data::{LexiData, SimpleString};
 
     use super::Parser;
@@ -255,11 +246,11 @@ mod test {
     fn it_can_parse_integers() -> anyhow::Result<()> {
         let tests = [
             ParserTest {
-                input: &Builder::new().add_int(12345).out(),
+                input: b":12345\r\n",
                 exp: 12345,
             },
             ParserTest {
-                input: &Builder::new().add_int(-12345).out(),
+                input: b":-12345\r\n",
                 exp: -12345,
             },
         ];
