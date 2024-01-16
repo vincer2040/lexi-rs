@@ -17,7 +17,7 @@ this trait include:
 
 1. &str
 2. String,
-3. i8, u8, i16, u16, i32, u32, i64
+3. i8, u8, i16, u16, i32, u32, i64, f32, f64
 
 ```rs
 
