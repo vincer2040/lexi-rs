@@ -25,7 +25,7 @@ impl<'a> Parser<'a> {
             b',' => self.parse_double(),
             b'-' => self.parse_error(),
             b'*' => self.parse_array(),
-            _ => todo!(),
+            _ => unreachable!(),
         }
     }
 

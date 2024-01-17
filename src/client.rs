@@ -26,6 +26,17 @@ impl Client {
         Self::parse(&bytes)
     }
 
+    pub async fn auth(&mut self, username: &str, password: &str) -> anyhow::Result<LexiData> {
+        let buf = Builder::new()
+            .add_arr(2)
+            .add_bulk("AUTH")
+            .add_bulk(username)
+            .add_bulk(password)
+            .out();
+        let bytes = self.send_and_read(&buf).await?;
+        Self::parse(&bytes)
+    }
+
     pub async fn set(
         &mut self,
         key: impl Into<LexiData>,
