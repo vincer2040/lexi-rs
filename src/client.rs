@@ -37,6 +37,14 @@ impl Client {
         Self::parse(&bytes)
     }
 
+    pub async fn keys(&mut self) -> anyhow::Result<LexiData> {
+        let buf = Builder::new()
+            .add_bulk("KEYS")
+            .out();
+        let bytes = self.send_and_read(&buf).await?;
+        Self::parse(&bytes)
+    }
+
     pub async fn set(
         &mut self,
         key: impl Into<LexiData>,
